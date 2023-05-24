@@ -1,22 +1,26 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 class ChipScreen extends StatefulWidget {
   @override
   State<ChipScreen> createState() => _ChipScreenState();
 }
 
+class ChipData {
+  // an id is useful when deleting chip
+  final String id;
+  final String name;
+  ChipData({required this.id, required this.name});
+}
+
 class _ChipScreenState extends State<ChipScreen> {
-  List<CustomIcon> listOfCustomIcons = [];
+  List<CustomIcon> _allChips = [];
   TextEditingController textEditingController = new TextEditingController();
-  void remIcon(String title) {
-    debugPrint(title);
-    debugPrint(listOfCustomIcons
-        .where((element) => element.title == title)
-        .first
-        .title);
-    listOfCustomIcons.remove(
-        listOfCustomIcons.where((element) => element.title == title).first);
+  void remIcon(String id) {
+    setState(() {
+      _allChips.removeWhere((element) => element.title == id);
+    });
   }
 
   void _showDialog(BuildContext context) {
@@ -25,33 +29,36 @@ class _ChipScreenState extends State<ChipScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: new Text("Enter Text"),
+          content: TextField(
+            controller: textEditingController,
+          ),
           actions: <Widget>[
-            TextField(
-              controller: textEditingController,
-              maxLines: 1,
-              decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter some text here...'),
-              onChanged: (String newText) {
-                // setState(() {
-                //   text = newText;
-                // });
-              },
-            ),
-            new OutlinedButton(
-              child: new Text("OK"),
-              onPressed: () {
-                listOfCustomIcons.add(CustomIcon(
-                  title: textEditingController.text,
-                  removeIcon: remIcon,
-                ));
-                Navigator.of(context).pop();
-              },
-            ),
+            ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _allChips.add(CustomIcon(
+                        title: textEditingController.text,
+                        id: textEditingController.text,
+                        removeIcon: remIcon));
+                  });
+
+                  // reset the TextField
+                  textEditingController.text = '';
+
+                  // Close the dialog
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Submit'))
           ],
         );
       },
     );
+  }
+
+  void _deleteChip(String id) {
+    setState(() {
+      _allChips.removeWhere((element) => element.id == id);
+    });
   }
 
   Widget build(BuildContext context) {
@@ -60,9 +67,17 @@ class _ChipScreenState extends State<ChipScreen> {
         appBar: AppBar(
           title: Text("Chip Simulation"),
         ),
-        body: GridView.count(
-          crossAxisCount: 3,
-          children: listOfCustomIcons,
+        body: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Wrap(
+            spacing: 10,
+            children: _allChips
+                .map((chip) => CustomIcon(
+                    title: chip.title,
+                    id: chip.id,
+                    removeIcon: chip.removeIcon))
+                .toList(),
+          ),
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () => {_showDialog(context)},
@@ -75,14 +90,18 @@ class _ChipScreenState extends State<ChipScreen> {
 
 class CustomIcon extends StatelessWidget {
   String title;
+  String id;
   Function(String title) removeIcon;
-  CustomIcon({required this.title, required this.removeIcon});
+  CustomIcon({required this.title, required this.id, required this.removeIcon});
   Widget build(BuildContext context) {
     var widthOfScreen = MediaQuery.of(context).size.width;
     return Padding(
       padding: const EdgeInsets.all(12.0),
       child: Container(
-        width: widthOfScreen / 3,
+        decoration: BoxDecoration(
+            color: Colors.orange, borderRadius: BorderRadius.circular(15)),
+        width: widthOfScreen / 4,
+        height: 50,
         child: Row(
           children: [
             Text(title),
